@@ -35,7 +35,13 @@ class CPCModel(nn.Module):
 
         preds = torch.stack(preds, dim=1) # b x 4 x 256
 
-        fk = torch.bmm()
+        ftk = torch.exp(torch.bmm(preds, ct.unsqueeze(-1))).squeeze_() #b x 4 x 1
+        sum_ftk = torch.sum(ftk, dim=0) # 1 x 4
+        f = self.logsoftmax(ftk/sum_ftk)
+
+        return f
+
+
 
         
     
