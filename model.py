@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F 
 import numpy as np 
 
+from itertools import combinations_with_replacement
 
 
 class Resblock(nn.Module):
@@ -35,6 +36,7 @@ class CPCModel(nn.Module):
 
     def forward(self, x):
         # x size : batch_size x 9 x 3 x 16 x 16 
+        b = x.size(0)
         zs = []
         for i in range(x.size(1)):
             zs.append(self.encoder(x[:,i,:,:].squeeze())) # e.i batch_size x 9 x 256
@@ -49,17 +51,25 @@ class CPCModel(nn.Module):
         
         ct = ct.squeeze()
         print('ct', ct.size())
+        
         for linear in self.WK[t:]:
             preds.append(linear(ct))
 
         preds = torch.stack(preds, dim=1) # b x 4 x 256
-        print('preds', preds.size())
-        print('ct', ct.unsqueeze(-1).size())
-        ftk = torch.exp(torch.bmm(preds, ct.unsqueeze(-1))).squeeze_() #b x 4 x 1
-        sum_ftk = torch.sum(ftk, dim=0) # 1 x 4
-        f = self.logsoftmax(ftk/sum_ftk)
-
-        return f
+        
+        total_loss = []
+        for i in range(b):
+            ct_b = ct[i]
+            print('preds_b', preds_b.size())
+            ftk = torch.exp(torch.bmm(preds_b.unsqueeze_(0), ct.unsqueeze(-1))).squeeze_() #b x 4 x 1
+            sum_ftk = torch.sum(ftk, dim=0) # 1 x 4
+        
+            f = self.logsoftmax(ftk/sum_ftk)
+        total_loss.append(f)
+        total_loss = torch.stack(total_loss, dim=0)
+        targets = torch.tensor([range(b)]).float()
+        total_loss = F.nll_loss(total_loss, targets)
+        return total_loss
 
 
 
