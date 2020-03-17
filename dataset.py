@@ -1,7 +1,7 @@
 import torch 
 
 from torch.utils.data import Dataset, DataLoader
-from torchvision.datasets import CIFAR10
+from torchvision.datasets import MNIST
 from torchvision.transforms import transforms
 
 

@@ -41,16 +41,14 @@ class CPCModel(nn.Module):
         for i in range(x.size(1)):
             zs.append(self.encoder(x[:,i,:,:].squeeze())) # e.i batch_size x 9 x 256
         zs = torch.stack(zs, dim=1).squeeze() # e.i batch_size x 9 x 256
-        print('zs size',zs.size())
+        
         t = 4 #torch.randint(1, 8, size=(1,)).long() # 1 to 7, 4
         zt, ztk = zs[:, :t, :], zs[:, t:, :] # 
-        print('zt size', zt.size())
         zt = zt.permute(1,0,2)
         out, ct = self.gru(zt) # b x 256 
         preds = []
         
         ct = ct.squeeze()
-        print('ct', ct.size())
         
         for linear in self.WK[t:]:
             preds.append(linear(ct))
@@ -60,14 +58,14 @@ class CPCModel(nn.Module):
         total_loss = []
         for i in range(b):
             ct_b = ct[i]
-            print('preds_b', preds_b.size())
-            ftk = torch.exp(torch.bmm(preds_b.unsqueeze_(0), ct.unsqueeze(-1))).squeeze_() #b x 4 x 1
-            sum_ftk = torch.sum(ftk, dim=0) # 1 x 4
-        
-            f = self.logsoftmax(ftk/sum_ftk)
-        total_loss.append(f)
+            ftk = torch.exp(torch.matmul(ztk, ct_b.unsqueeze(-1))).squeeze_() #b x 4 x 1
+            f = self.logsoftmax(ftk)
+            total_loss.append(f)
         total_loss = torch.stack(total_loss, dim=0)
-        targets = torch.tensor([range(b)]).float()
+    
+        targets = [torch.ones(size=(5,)).long() * i for i in range(b)]
+        targets = torch.stack(targets,dim=0)
+        
         total_loss = F.nll_loss(total_loss, targets)
         return total_loss
 
@@ -75,7 +73,7 @@ class CPCModel(nn.Module):
 
 
 if __name__ == '__main__':
-    x = torch.Tensor(size=(2, 9, 3, 16, 16)).zero_()
+    x = torch.Tensor(size=(8, 9, 3, 16, 16)).zero_()
     cpc = CPCModel(3, 256, 1, 9)
 
     print(cpc(x))
