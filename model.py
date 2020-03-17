@@ -59,7 +59,8 @@ class CPCModel(nn.Module):
         for i in range(b):
             ct_b = ct[i]
             ftk = torch.exp(torch.matmul(ztk, ct_b.unsqueeze(-1))).squeeze_() #b x 4 x 1
-            f = self.logsoftmax(ftk)
+            f = self.logsoftmax(ftk) 
+            print('f', f.size())
             total_loss.append(f)
         total_loss = torch.stack(total_loss, dim=0)
     
