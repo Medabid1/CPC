@@ -52,22 +52,26 @@ class CPCModel(nn.Module):
         
         for linear in self.WK[t:]:
             preds.append(linear(ct))
-
         preds = torch.stack(preds, dim=1) # b x 4 x 256
         total_loss = []
+        accuracies = []
         for i in range(b):
-            p_b = preds[i]
-            ftk = torch.exp(torch.sum(torch.mul(ztk, p_b),dim=-1)).squeeze_() #b x 4 x 1
-            f = self.logsoftmax(ftk) 
-            print('f', f.size())
-            total_loss.append(f)
+            p_b = preds.select(0,i)
+            ftk = self.logsoftmax(torch.exp(torch.sum(torch.mul(ztk, p_b), dim=-1)).squeeze())
+            m = torch.argmax(ftk, dim=0).detach()
+            
+            t = torch.tensor([i] * 5).cuda()
+            
+            acc = torch.sum(torch.eq(m,t))/5
+            total_loss.append(ftk)
+            accuracies.append(acc.cpu().item())
+
         total_loss = torch.stack(total_loss, dim=0)
-        print(total_loss.size())
-        targets = [torch.ones(size=(5,)).long() * i for i in range(b)]
+        targets = [torch.ones(size=(5,)).long().cuda() * i for i in range(b)]
         targets = torch.stack(targets,dim=0)
         
         total_loss = F.nll_loss(total_loss, targets)
-        return total_loss
+        return total_loss, np.mean(accuracies)
 
 
 
