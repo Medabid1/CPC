@@ -6,7 +6,7 @@ from torchvision.transforms import transforms
 from dataset import overlap
 from model import CPCModel
 
-transform = transforms.Compose([transforms.ToTensor(), overlap(14),  transforms.Normalize((0), (0.5))])
+transform = transforms.Compose([transforms.ToTensor(), overlap(14)])
 
 mnist_dataset = MNIST('data', transform=transform, download=True)
 loader = DataLoader(mnist_dataset, batch_size=32, shuffle=True)

@@ -30,8 +30,8 @@ class CPCModel(nn.Module):
         self.encoder = nn.Sequential(*layers)
 
         self.gru = nn.GRU(dim, 256)
-        self.WK = nn.ModuleList([nn.Linear(dim, 256) for _ in range(n_time_steps)])
-        self.logsoftmax = nn.LogSoftmax()
+        self.WK = nn.ModuleList([nn.Linear(256, dim) for _ in range(n_time_steps)])
+        self.logsoftmax = nn.LogSoftmax(dim=0)
 
 
     def forward(self, x):
@@ -39,7 +39,7 @@ class CPCModel(nn.Module):
         b = x.size(0)
         zs = []
         for i in range(x.size(1)):
-            zs.append(self.encoder(x[:,i,:,:].squeeze())) # e.i batch_size x 9 x 256
+            zs.append(self.encoder(x[:,i,:, :,:])) # e.i batch_size x 9 x 256
         zs = torch.stack(zs, dim=1).squeeze() # e.i batch_size x 9 x 256
         
         t = 4 #torch.randint(1, 8, size=(1,)).long() # 1 to 7, 4
@@ -54,16 +54,15 @@ class CPCModel(nn.Module):
             preds.append(linear(ct))
 
         preds = torch.stack(preds, dim=1) # b x 4 x 256
-        
         total_loss = []
         for i in range(b):
-            ct_b = ct[i]
-            ftk = torch.exp(torch.matmul(ztk, ct_b.unsqueeze(-1))).squeeze_() #b x 4 x 1
+            p_b = preds[i]
+            ftk = torch.exp(torch.sum(torch.mul(ztk, p_b),dim=-1)).squeeze_() #b x 4 x 1
             f = self.logsoftmax(ftk) 
             print('f', f.size())
             total_loss.append(f)
         total_loss = torch.stack(total_loss, dim=0)
-    
+        print(total_loss.size())
         targets = [torch.ones(size=(5,)).long() * i for i in range(b)]
         targets = torch.stack(targets,dim=0)
         
@@ -74,8 +73,8 @@ class CPCModel(nn.Module):
 
 
 if __name__ == '__main__':
-    x = torch.Tensor(size=(8, 9, 3, 16, 16)).zero_()
-    cpc = CPCModel(3, 256, 1, 9)
+    x = torch.Tensor(size=(32, 9, 1, 14, 14)).zero_()
+    cpc = CPCModel(1, 64, 1, 9)
 
     print(cpc(x))
 
