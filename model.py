@@ -73,6 +73,15 @@ class CPCModel(nn.Module):
         total_loss = F.nll_loss(total_loss, targets)
         return total_loss, np.mean(accuracies)
 
+    def forward_encoder(self, x):
+        zs = []
+        for i in range(x.size(1)):
+            zs.append(self.encoder(x[:,i,:, :,:])) # e.i batch_size x 9 x 256
+        zs = torch.stack(zs, dim=1).squeeze().view(x.size(0), -1)
+        return zs
+
+    def save_encoder(self):
+        torch.save(self.encoder.state_dict(), 'encoder_weights.pt')
 
 
 
@@ -80,7 +89,7 @@ if __name__ == '__main__':
     x = torch.Tensor(size=(32, 9, 1, 14, 14)).zero_()
     cpc = CPCModel(1, 64, 1, 9)
 
-    print(cpc(x))
+    print(cpc.forward_encoder(x).size())
 
     
 
