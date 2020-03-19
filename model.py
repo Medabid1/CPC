@@ -5,6 +5,20 @@ import numpy as np
 
 from itertools import combinations_with_replacement
 
+class encoder(nn.Module):
+    def __init__(self, in_channels, dim, n_resblocks):
+        super().__init__()
+        layers = [nn.Conv2d(1, 64, 5, 2, 2), nn.ReLU()]
+        for _ in range(n_resblocks):
+            layers += [Resblock(dim)]
+        layers.append(nn.AdaptiveAvgPool2d(1))
+        self.encoder = nn.Sequential(*layers)
+    def forward(self, x):
+        zs = []
+        for i in range(x.size(1)):
+            zs.append(self.encoder(x[:,i,:, :,:])) # e.i batch_size x 9 x 256
+        zs = torch.stack(zs, dim=1).squeeze()
+        return zs 
 
 class Resblock(nn.Module):
     def __init__(self, in_channels):
@@ -23,11 +37,8 @@ class Resblock(nn.Module):
 class CPCModel(nn.Module): 
     def __init__(self, in_channels, dim, n_resblocks, n_time_steps):
         super().__init__()
-        layers = [nn.Conv2d(in_channels, dim, 5, 2, 2), nn.ReLU()]
-        for _ in range(n_resblocks):
-            layers += [Resblock(dim)]
-        layers.append(nn.AdaptiveAvgPool2d(1))
-        self.encoder = nn.Sequential(*layers)
+        
+        self.encoder = encoder(in_channels, dim, n_resblocks)
 
         self.gru = nn.GRU(dim, 256)
         self.WK = nn.ModuleList([nn.Linear(256, dim) for _ in range(n_time_steps)])
@@ -37,11 +48,7 @@ class CPCModel(nn.Module):
     def forward(self, x):
         # x size : batch_size x 9 x 3 x 16 x 16 
         b = x.size(0)
-        zs = []
-        for i in range(x.size(1)):
-            zs.append(self.encoder(x[:,i,:, :,:])) # e.i batch_size x 9 x 256
-        zs = torch.stack(zs, dim=1).squeeze() # e.i batch_size x 9 x 256
-        
+        zs = self.encoder(x) # e.i batch_size x 9 x 256
         t = 4 #torch.randint(1, 8, size=(1,)).long() # 1 to 7, 4
         zt, ztk = zs[:, :t, :], zs[:, t:, :] # 
         zt = zt.permute(1,0,2)
@@ -73,12 +80,6 @@ class CPCModel(nn.Module):
         total_loss = F.nll_loss(total_loss, targets)
         return total_loss, np.mean(accuracies)
 
-    def forward_encoder(self, x):
-        zs = []
-        for i in range(x.size(1)):
-            zs.append(self.encoder(x[:,i,:, :,:])) # e.i batch_size x 9 x 256
-        zs = torch.stack(zs, dim=1).squeeze().view(x.size(0), -1)
-        return zs
 
     def save_encoder(self):
         torch.save(self.encoder.state_dict(), 'encoder_weights.pt')
