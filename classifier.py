@@ -48,14 +48,24 @@ class cl(nn.Module):
         zs = torch.stack(zs, dim=1).squeeze()
         return zs
 
+class classifier(nn.Module):
+    def __init__(self, in_feat, out_feat):
+        super().__init__()
+        self.main = nn.Sequential(nn.Linear(in_feat, in_feat//4),
+                    nn.ReLU(),
+                    nn.Linear(in_feat//4, out_feat))
+    def forward(self, x):
+        return self.main(x)
+
 model = cl(1, 64, 3).to('cuda')
 model.load_state_dict(torch.load('/gel/usr/maabi11/Desktop/CPC/encoder_weights.pt'))
 
-classifier = torch.nn.Linear(576, 10).to('cuda')
-opt_cls = torch.optim.Adam(classifier.parameters())
+classifier = classifier(576,10).to('cuda')
+opt_cls = torch.optim.SGD(classifier.parameters(), lr=0.1, momentum=.9)
+scheduler = torch.optim.lr_scheduler.StepLR(opt_cls, 20, gamma=0.1, last_epoch=-1)
 criterion = torch.nn.CrossEntropyLoss()
 
-epochs = 5
+epochs = 100
 model.eval()
 l = []
 acc = []
@@ -73,4 +83,5 @@ for epoch in tqdm(range(epochs)):
         acc.append(accuracy.cpu().item())
         if i % 100 == 0 :
             print(f'loss {sum(l[-100:])/100}, accuracy {np.mean(acc[-100:])} at itertion {i} at epoch {epoch}')
+    scheduler.step()
 

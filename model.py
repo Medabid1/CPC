@@ -66,7 +66,6 @@ class CPCModel(nn.Module):
             p_b = preds.select(0,i)
             ftk = self.logsoftmax(torch.exp(torch.sum(torch.mul(ztk, p_b), dim=-1)).squeeze())
             m = torch.argmax(ftk, dim=0).detach()
-            
             t = torch.tensor([i] * 5).cuda()
             
             acc = torch.sum(torch.eq(m,t))/5
@@ -76,21 +75,20 @@ class CPCModel(nn.Module):
         total_loss = torch.stack(total_loss, dim=0)
         targets = [torch.ones(size=(5,)).long().cuda() * i for i in range(b)]
         targets = torch.stack(targets,dim=0)
-        
         total_loss = F.nll_loss(total_loss, targets)
         return total_loss, np.mean(accuracies)
 
 
     def save_encoder(self):
         torch.save(self.encoder.state_dict(), 'encoder_weights.pt')
-
+        print('saved !')
 
 
 if __name__ == '__main__':
-    x = torch.Tensor(size=(32, 9, 1, 14, 14)).zero_()
-    cpc = CPCModel(1, 64, 1, 9)
+    x = torch.Tensor(size=(3, 9, 1, 14, 14)).uniform_().cuda()
+    cpc = CPCModel(1, 64, 1, 9).cuda()
 
-    print(cpc.forward_encoder(x).size())
+    cpc(x)
 
     
 

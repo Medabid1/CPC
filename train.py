@@ -14,11 +14,12 @@ def compute_acc(logits, labels):
 transform = transforms.Compose([transforms.ToTensor(), overlap(14)])
 
 mnist_dataset = MNIST('data', transform=transform, download=True)
-loader = DataLoader(mnist_dataset, batch_size=32, shuffle=True)
+loader = DataLoader(mnist_dataset, batch_size=64, shuffle=True)
 
 model = CPCModel(1, 64, 3, 9).to('cuda')
 opt = torch.optim.Adam(model.parameters())
-epochs = 7
+scheduler = torch.optim.lr_scheduler.StepLR(opt, 20, gamma=0.1, last_epoch=-1)
+epochs = 100
 
 l = []
 acc = []
@@ -34,5 +35,5 @@ for epoch in tqdm(range(epochs)):
         acc.append(accuracy)
         if i % 100 == 0 :
             print(f'loss {sum(l[-100:])/100}, accuracy {np.mean(acc[-100:])} at itertion {i} at epoch {epoch}')
-
+    scheduler.step()
 model.save_encoder()
