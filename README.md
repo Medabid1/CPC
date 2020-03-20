@@ -6,4 +6,12 @@ We Split MNIST images into 3x3 grid, composed of 9, 14x14 images with 50% overla
 For the autoregressive part we use GRU cell and we predict 5 steps in the future. 
 
 [CPC on Image](https://raw.github.com/medabid1/CPC/master/imgs/vision.png?raw=true)
+###Usage
+The Encoder weights are saved after each train using the `train.py` file.
+We train a classifier with one hidden layer on top of the features spaces of the freezed Encoder in `classifier.py` file.
 
+The classifier reach 85% accuracy on mnist.
+
+###ToDo :
+- [] make the contrastive predicition row wise.
+- [] train on cifar-10
