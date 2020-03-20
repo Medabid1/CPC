@@ -11,7 +11,7 @@ For the autoregressive part we use GRU cell and we predict 5 steps in the future
 
 - The Encoder weights are saved after each train using the `train.py` file.
 - We train a classifier with one hidden layer on top of the features spaces of the freezed Encoder in `classifier.py` file.
-- The classifier reach 85% accuracy on mnist.
+- The classifier reach 85% accuracy on Mnist.
 
 ### ToDo :
 - Make the contrastive predicition row wise.
